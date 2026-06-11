@@ -6,4 +6,5 @@ import ra.project._11_project.model.entity.TokenBlacklist;
 
 @Repository
 public interface TokenBlacklistRepository extends JpaRepository<TokenBlacklist,Long> {
+    boolean existsByTokenString(String tokenString);
 }

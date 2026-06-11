@@ -11,10 +11,11 @@ import ra.project._11_project.service.UserService;
 @RestController
 @RequestMapping("/api/v1/admin/users")
 @RequiredArgsConstructor
-public class UserController {
+public class AdminController {
 
     private final UserService userService;
 
+    // lấy tất cả danh sách
     @GetMapping
     public ApiDataResponse<?> getAll(
             @RequestParam(defaultValue = "") String keyword,
@@ -35,6 +36,7 @@ public class UserController {
                 .build();
     }
 
+    // lấy theo id
     @GetMapping("/{id}")
     public ApiDataResponse<?> findById(
             @PathVariable Long id
@@ -49,27 +51,25 @@ public class UserController {
                 .build();
     }
 
+    // đăng kí cho bsi/benhnhan
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiDataResponse<?> create(
             @Valid @RequestBody UserRequest request
     ) {
-
         return ApiDataResponse.builder()
                 .success(true)
                 .message("Tạo thành công")
-                .data(
-                        userService.createUser(request)
-                )
+                .data(userService.createUser(request))
                 .build();
     }
 
+    // sửa thông tin
     @PutMapping("/{id}")
     public ApiDataResponse<?> update(
             @PathVariable Long id,
             @Valid @RequestBody UserRequest request
     ) {
-
         return ApiDataResponse.builder()
                 .success(true)
                 .message("Cập nhật thành công")
@@ -79,13 +79,12 @@ public class UserController {
                 .build();
     }
 
+    // xóa
     @DeleteMapping("/{id}")
     public ApiDataResponse<?> delete(
             @PathVariable Long id
     ) {
-
         userService.deleteUser(id);
-
         return ApiDataResponse.builder()
                 .success(true)
                 .message("Xóa thành công")

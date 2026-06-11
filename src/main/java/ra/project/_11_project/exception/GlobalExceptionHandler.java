@@ -48,6 +48,11 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống, vui lòng thử lại sau", request.getRequestURI());
     }
 
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ApiErrorResponse> handleGeneric(RuntimeException ex, HttpServletRequest request) {
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
+    }
+
     private ResponseEntity<ApiErrorResponse> buildError(HttpStatus status, String message, String path) {
         ApiErrorResponse error = ApiErrorResponse.builder()
                 .timestamp(LocalDateTime.now())

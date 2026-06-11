@@ -15,15 +15,26 @@ import java.time.LocalDateTime;
 @Data
 @Builder
 public class MedicalRecord {
-    // hồ sơ y tế
+
+    // Hồ sơ bệnh án
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     private String fileUrl;
+
     @Column(length = 1000)
     private String diagnosis;
+
     private LocalDateTime createdAt;
+
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
+
+    // Bác sĩ tạo hồ sơ
+    @ManyToOne
+    @JoinColumn(name = "doctor_id")
+    private User doctor;
 }

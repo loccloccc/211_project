@@ -4,11 +4,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import ra.project._11_project.exception.ConflictException;
 import ra.project._11_project.exception.ResourceNotFoundException;
 import ra.project._11_project.mapper.UserMapper;
+import ra.project._11_project.model.dto.request.ChangePasswordRequest;
 import ra.project._11_project.model.dto.request.UserRequest;
 import ra.project._11_project.model.dto.response.UserResponse;
 import ra.project._11_project.model.entity.RoleEnum;
@@ -24,14 +26,16 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
 
-    // đăng kí
+    // đăng kí của bệnh nhân
     @Override
     public UserResponse registerPatient(UserRequest request) {
 
         if(userRepository.existsByUsername(request.getUsername())){
             throw new ConflictException("Username đã tồn tại");
         }
-
+        if(request.getUsername().contains(" ")){
+            throw new RuntimeException("Username không được để dấu cách");
+        }
         User user = User.builder()
                 .username(request.getUsername())
                 .passwordHash(
@@ -46,10 +50,15 @@ public class UserServiceImpl implements UserService {
         );
     }
 
-    // them người dùng
+    // them người dùng của admin
     @Override
     public UserResponse createUser(UserRequest request) {
-
+        if(userRepository.existsByUsername(request.getUsername())){
+            throw new ConflictException("Username đã tồn tại");
+        }
+        if(request.getUsername().contains(" ")){
+            throw new RuntimeException("Username không được để dấu cách");
+        }
         User user = User.builder()
                 .username(request.getUsername())
                 .passwordHash(
@@ -116,5 +125,38 @@ public class UserServiceImpl implements UserService {
             users = userRepository.findByUsernameContainingIgnoreCase(keyword, pageable);
         }
         return users.map(userMapper::toResponse);
+    }
+
+    @Override
+    public void changePassword(ChangePasswordRequest request) {
+
+        String username = SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getName();
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Không tìm thấy người dùng"
+                        ));
+
+        if (!passwordEncoder.matches(
+                request.getOldPassword(),
+                user.getPasswordHash()
+        )) {
+
+            throw new ConflictException(
+                    "Mật khẩu cũ không chính xác"
+            );
+        }
+
+        user.setPasswordHash(
+                passwordEncoder.encode(
+                        request.getNewPassword()
+                )
+        );
+
+        userRepository.save(user);
     }
 }
