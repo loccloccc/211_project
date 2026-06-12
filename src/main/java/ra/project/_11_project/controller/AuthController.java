@@ -22,6 +22,7 @@ public class AuthController {
     private final AuthService authService;
 
     // bệnh nhân  đăng kí
+    // http://localhost:8080/api/v1/auth/register
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiDataResponse<?> register(
@@ -36,6 +37,7 @@ public class AuthController {
     }
 
     // tất cả đăng nhập
+    // http://localhost:8080/api/v1/auth/login
     @PostMapping("/login")
     @ResponseStatus(HttpStatus.OK)
     public ApiDataResponse<?> login(
@@ -51,7 +53,10 @@ public class AuthController {
     }
 
 
+    // refresh token
+    // http://localhost:8080/api/v1/auth/refresh
     @PostMapping("/refresh")
+    @ResponseStatus(HttpStatus.OK)
     public ApiDataResponse<?> refreshToken(
             @Valid
             @RequestBody
@@ -66,7 +71,9 @@ public class AuthController {
     }
 
     // tất cả đăng xuất
+    // http://localhost:8080/api/v1/auth/logout
     @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.OK)
     public ApiDataResponse<?> logout(
             @RequestHeader("Authorization")
             String authorizationHeader
@@ -80,14 +87,16 @@ public class AuthController {
                 .build();
     }
 
+    // thay đổi mật khẩu
+    // http://localhost:8080/api/v1/auth/change-password
     @PutMapping("/change-password")
+    @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("isAuthenticated()")
     public ApiDataResponse<?> changePassword(
             @Valid @RequestBody ChangePasswordRequest request
     ) {
 
         userService.changePassword(request);
-
         return ApiDataResponse.builder()
                 .success(true)
                 .message("Đổi mật khẩu thành công")

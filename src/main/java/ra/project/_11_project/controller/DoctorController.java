@@ -21,6 +21,8 @@ public class DoctorController {
     private final MedicalRecordService medicalRecordService;
 
 
+    // cập nhập trạng thái
+    // http://localhost:8080/api/v1/doctors/appointments
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasRole('DOCTOR')")
@@ -28,9 +30,7 @@ public class DoctorController {
             @PathVariable Long id,
             @RequestParam StatusEnum status
     ) {
-
         AppointmentResponse response = appointmentService.updateStatus(id, status);
-
         return ApiDataResponse.builder()
                 .success(true)
                 .message("Cập nhật trạng thái thành công")
@@ -38,15 +38,14 @@ public class DoctorController {
                 .build();
     }
 
+    // upload hồ sơ
+    // http://localhost:8080/api/v1/doctors/appointments/records/upload
     @PostMapping("/records/upload")
     @PreAuthorize("hasRole('DOCTOR')")
     @ResponseStatus(HttpStatus.OK)
     public ApiDataResponse<?> uploadMedicalRecord(
-
             @RequestParam Long patientId,
-
             @RequestParam String diagnosis,
-
             @RequestParam MultipartFile file
     ) {
 
@@ -60,9 +59,7 @@ public class DoctorController {
 
         return ApiDataResponse.builder()
                 .success(true)
-                .message(
-                        "Tải hồ sơ bệnh án thành công"
-                )
+                .message("Tải hồ sơ bệnh án thành công")
                 .data(response)
                 .build();
     }

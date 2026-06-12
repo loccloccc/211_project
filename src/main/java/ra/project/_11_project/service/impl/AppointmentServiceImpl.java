@@ -46,8 +46,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             );
         }
 
-        boolean exists =
-                appointmentRepository.existsByDoctorAndDateAndStartTimeAndEndTime(
+        boolean exists = appointmentRepository.existsByDoctorAndDateAndStartTimeAndEndTime(
                         doctor,
                         request.getDate(),
                         request.getStartTime(),
@@ -55,9 +54,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 );
 
         if (exists) {
-            throw new ConflictException(
-                    "Bác sĩ đã có lịch khám trong khung giờ này"
-            );
+            throw new ConflictException("Bác sĩ đã có lịch khám trong khung giờ này");
         }
 
         Appointment appointment = Appointment.builder()
@@ -97,12 +94,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             StatusEnum newStatus
     ) {
 
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-
-        System.out.println("AUTH = " + authentication);
-        System.out.println("USERNAME = " + authentication.getName());
-
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentDoctor = userRepository.findByUsername(authentication.getName())
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -115,15 +107,6 @@ public class AppointmentServiceImpl implements AppointmentService {
                                 "Không tìm thấy lịch khám"
                         ));
 
-        System.out.println(
-                "Current Doctor ID = "
-                        + currentDoctor.getId()
-        );
-
-        System.out.println(
-                "Appointment Doctor ID = "
-                        + appointment.getDoctor().getId()
-        );
 
         // Chỉ bác sĩ sở hữu lịch khám mới được cập nhật
         if (!appointment.getDoctor().getId()
@@ -136,12 +119,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         StatusEnum current = appointment.getStatus();
 
-        if (current == StatusEnum.COMPLETED
-                || current == StatusEnum.CANCELLED) {
-
-            throw new ConflictException(
-                    "Lịch đã kết thúc, không thể thay đổi"
-            );
+        if (current == StatusEnum.COMPLETED || current == StatusEnum.CANCELLED) {
+            throw new ConflictException("Lịch đã kết thúc, không thể thay đổi");
         }
 
         switch (current) {

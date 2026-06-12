@@ -55,11 +55,7 @@ public class MedicalRecordServiceImpl
                                             "Không tìm thấy bệnh nhân"
                                     ));
 
-            Map uploadResult =
-                    cloudinary.uploader().upload(
-                            file.getBytes(),
-                            ObjectUtils.emptyMap()
-                    );
+            Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
 
             String fileUrl =
                     uploadResult.get("secure_url")

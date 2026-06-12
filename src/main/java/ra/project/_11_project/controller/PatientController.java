@@ -1,5 +1,6 @@
 package ra.project._11_project.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -21,12 +22,16 @@ public class PatientController {
     private final AppointmentService appointmentService;
 
     // đặt lịch
+    // http://localhost:8080/api/v1/api/v1/patients/appointments
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiDataResponse<?> createAppointment(
-            @RequestBody AppointmentRequest request,
-            @RequestParam Long patientId
+            @Valid @RequestBody AppointmentRequest request
     ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        CustomUserDetails user = (CustomUserDetails) authentication.getPrincipal();
+        Long patientId = user.getUserId();
+
         return ApiDataResponse.builder()
                 .success(true)
                 .message("Đặt lịch thành công")
@@ -34,20 +39,20 @@ public class PatientController {
                 .build();
     }
 
-
-
+    // lấy đơn khám của mình
+    // http://localhost:8080/api/v1/api/v1
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public List<AppointmentResponse> getMyAppointments() {
+    public ApiDataResponse<?> getMyAppointments() {
 
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-
-        CustomUserDetails user =
-                (CustomUserDetails) authentication.getPrincipal();
-
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        CustomUserDetails user = (CustomUserDetails) authentication.getPrincipal();
         Long patientId = user.getUserId();
 
-        return appointmentService.getMyAppointments(patientId);
+        return ApiDataResponse.builder()
+                .success(true)
+                .message("Lấy dữ liệu thành công")
+                .data(appointmentService.getMyAppointments(patientId))
+                .build();
     }
 }

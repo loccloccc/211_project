@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import ra.project._11_project.exception.BadRequestException;
 import ra.project._11_project.exception.ConflictException;
 import ra.project._11_project.exception.ResourceNotFoundException;
 import ra.project._11_project.mapper.UserMapper;
@@ -34,7 +35,7 @@ public class UserServiceImpl implements UserService {
             throw new ConflictException("Username đã tồn tại");
         }
         if(request.getUsername().contains(" ")){
-            throw new RuntimeException("Username không được để dấu cách");
+            throw new BadRequestException("Username không được để dấu cách");
         }
         User user = User.builder()
                 .username(request.getUsername())

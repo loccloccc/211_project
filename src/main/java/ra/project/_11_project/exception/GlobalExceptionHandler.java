@@ -17,50 +17,111 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-
-
+    /**
+     * Xử lý các exception khi không tìm thấy dữ liệu.
+     * Trả về HTTP 404 NOT FOUND
+     */
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ApiErrorResponse> handleAppointmentNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
-        return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI());
+    public ResponseEntity<ApiErrorResponse> handleNotFound(
+            ResourceNotFoundException ex,
+            HttpServletRequest request
+    ) {
+        return buildError(
+                HttpStatus.NOT_FOUND,
+                ex.getMessage(),
+                request.getRequestURI()
+        );
     }
 
+    /**
+     * Xử lý các lỗi xung đột dữ liệu.
+     * Trả về HTTP 409 CONFLICT
+     */
     @ExceptionHandler(ConflictException.class)
-    public ResponseEntity<ApiErrorResponse> handleConflict(ConflictException ex, HttpServletRequest request) {
-        return buildError(HttpStatus.CONFLICT, ex.getMessage(), request.getRequestURI());
+    public ResponseEntity<ApiErrorResponse> handleConflict(
+            ConflictException ex,
+            HttpServletRequest request
+    ) {
+        return buildError(
+                HttpStatus.CONFLICT,
+                ex.getMessage(),
+                request.getRequestURI()
+        );
     }
 
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
-        return buildError(HttpStatus.FORBIDDEN, ex.getMessage(), request.getRequestURI());
+    /**
+     * Xử lý các request gửi lên không hợp lệ.
+     * Trả về HTTP 400 BAD REQUEST
+     */
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ApiErrorResponse> handleBadRequest(
+            BadRequestException ex,
+            HttpServletRequest request
+    ) {
+        return buildError(
+                HttpStatus.BAD_REQUEST,
+                ex.getMessage(),
+                request.getRequestURI()
+        );
     }
 
+    /**
+     * Xử lý lỗi validation từ @Valid.
+     * Trả về HTTP 400 BAD REQUEST
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiErrorResponse> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest request) {
-        String message = ex.getBindingResult().getFieldErrors()
-                .stream()
-                .map(FieldError::getDefaultMessage)
-                .collect(Collectors.joining(", "));
-        return buildError(HttpStatus.BAD_REQUEST, message, request.getRequestURI());
+    public ResponseEntity<ApiErrorResponse> handleValidation(
+            MethodArgumentNotValidException ex,
+            HttpServletRequest request
+    ) {
+
+        String message =
+                ex.getBindingResult()
+                        .getFieldErrors()
+                        .stream()
+                        .map(FieldError::getDefaultMessage)
+                        .collect(Collectors.joining(", "));
+
+        return buildError(
+                HttpStatus.BAD_REQUEST,
+                message,
+                request.getRequestURI()
+        );
     }
 
+    /**
+     * Trả về HTTP 500 INTERNAL SERVER ERROR
+     */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiErrorResponse> handleGeneric(Exception ex, HttpServletRequest request) {
-        return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống, vui lòng thử lại sau", request.getRequestURI());
+    public ResponseEntity<ApiErrorResponse> handleException(
+            Exception ex,
+            HttpServletRequest request
+    ) {
+
+        ex.printStackTrace();
+        return buildError(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Lỗi hệ thống, vui lòng thử lại sau",
+                request.getRequestURI()
+        );
     }
 
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ApiErrorResponse> handleGeneric(RuntimeException ex, HttpServletRequest request) {
-        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
-    }
+    private ResponseEntity<ApiErrorResponse> buildError(
+            HttpStatus status,
+            String message,
+            String path
+    ) {
 
-    private ResponseEntity<ApiErrorResponse> buildError(HttpStatus status, String message, String path) {
-        ApiErrorResponse error = ApiErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(status.value())
-                .error(status.getReasonPhrase())
-                .message(message)
-                .path(path)
-                .build();
-        return ResponseEntity.status(status).body(error);
+        ApiErrorResponse error =
+                ApiErrorResponse.builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(status.value())
+                        .error(status.getReasonPhrase())
+                        .message(message)
+                        .path(path)
+                        .build();
+
+        return ResponseEntity.status(status)
+                .body(error);
     }
 }
