@@ -31,24 +31,14 @@ public class JwtProvider {
         );
     }
 
-    public String generateAccessToken(
-            Long userId,
-            String username,
-            String role
-    ) {
-
+    public String generateAccessToken(Long userId, String username, String role) {
         return Jwts.builder()
                 .setSubject(username)
                 .claim("userId", userId)
                 .claim("role", role)
                 .claim("type", "ACCESS")
                 .setIssuedAt(new Date())
-                .setExpiration(
-                        new Date(
-                                System.currentTimeMillis()
-                                        + accessExpiration
-                        )
-                )
+                .setExpiration(new Date(System.currentTimeMillis() + accessExpiration))
                 .signWith(key)
                 .compact();
     }

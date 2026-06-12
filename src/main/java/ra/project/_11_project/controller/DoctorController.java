@@ -25,7 +25,6 @@ public class DoctorController {
     // http://localhost:8080/api/v1/doctors/appointments
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasRole('DOCTOR')")
     public ApiDataResponse<?> updateStatus(
             @PathVariable Long id,
             @RequestParam StatusEnum status
@@ -41,7 +40,6 @@ public class DoctorController {
     // upload hồ sơ
     // http://localhost:8080/api/v1/doctors/appointments/records/upload
     @PostMapping("/records/upload")
-    @PreAuthorize("hasRole('DOCTOR')")
     @ResponseStatus(HttpStatus.OK)
     public ApiDataResponse<?> uploadMedicalRecord(
             @RequestParam Long patientId,

@@ -18,14 +18,8 @@ public class CustomUserDetailsService
             String username
     ) throws UsernameNotFoundException {
 
-        User user =
-                userRepository.findByUsername(username)
-                        .orElseThrow(
-                                () -> new UsernameNotFoundException(
-                                        "User not found"
-                                )
-                        );
-
+        User user = userRepository.findByUsername(username)
+                        .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         return new CustomUserDetails(user);
     }
 }

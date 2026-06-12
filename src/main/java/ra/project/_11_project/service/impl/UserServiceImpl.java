@@ -62,16 +62,12 @@ public class UserServiceImpl implements UserService {
         }
         User user = User.builder()
                 .username(request.getUsername())
-                .passwordHash(
-                        passwordEncoder.encode(request.getPassword())
-                )
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .role(request.getRole())
                 .isActive(true)
                 .build();
 
-        return userMapper.toResponse(
-                userRepository.save(user)
-        );
+        return userMapper.toResponse(userRepository.save(user));
     }
 
     // sửa
@@ -84,9 +80,7 @@ public class UserServiceImpl implements UserService {
         user.setUsername(request.getUsername());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setRole(request.getRole());
-        return userMapper.toResponse(
-                userRepository.save(user)
-        );
+        return userMapper.toResponse(userRepository.save(user));
     }
 
     // xóa
@@ -104,9 +98,7 @@ public class UserServiceImpl implements UserService {
         return userMapper.toResponse(
                 userRepository.findById(id)
                         .orElseThrow(
-                                () -> new ResourceNotFoundException(
-                                        "Không tìm thấy user"
-                                )
+                                () -> new ResourceNotFoundException("Không tìm thấy user")
                         )
         );
     }
@@ -137,27 +129,11 @@ public class UserServiceImpl implements UserService {
                 .getName();
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Không tìm thấy người dùng"
-                        ));
-
-        if (!passwordEncoder.matches(
-                request.getOldPassword(),
-                user.getPasswordHash()
-        )) {
-
-            throw new ConflictException(
-                    "Mật khẩu cũ không chính xác"
-            );
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
+        if (!passwordEncoder.matches(request.getOldPassword(),user.getPasswordHash())) {
+            throw new ConflictException("Mật khẩu cũ không chính xác");
         }
-
-        user.setPasswordHash(
-                passwordEncoder.encode(
-                        request.getNewPassword()
-                )
-        );
-
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
     }
 }
