@@ -39,6 +39,7 @@ public class PatientController {
                 .build();
     }
 
+
     // lấy đơn khám của mình
     // http://localhost:8080/api/v1/api/v1
     @GetMapping

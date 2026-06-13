@@ -27,20 +27,30 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
 
-    // đăng kí của bệnh nhân
+    // Đăng ký bệnh nhân
     @Override
-    public UserResponse registerPatient(UserRequest request) {
-
-        if(userRepository.existsByUsername(request.getUsername())){
+    public UserResponse registerPatient(
+            UserRequest request
+    ) {
+        if (userRepository.existsByUsername(request.getUsername())) {
             throw new ConflictException("Username đã tồn tại");
         }
-        if(request.getUsername().contains(" ")){
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new ConflictException("Email đã tồn tại");
+        }
+
+        if (request.getUsername().contains(" ")) {
             throw new BadRequestException("Username không được để dấu cách");
         }
+
         User user = User.builder()
                 .username(request.getUsername())
+                .email(request.getEmail())
                 .passwordHash(
-                        passwordEncoder.encode(request.getPassword())
+                        passwordEncoder.encode(
+                                request.getPassword()
+                        )
                 )
                 .role(RoleEnum.PATIENT)
                 .isActive(true)
@@ -51,59 +61,119 @@ public class UserServiceImpl implements UserService {
         );
     }
 
-    // them người dùng của admin
+    // Admin tạo user
     @Override
-    public UserResponse createUser(UserRequest request) {
-        if(userRepository.existsByUsername(request.getUsername())){
+    public UserResponse createUser(
+            UserRequest request
+    ) {
+
+        if (userRepository.existsByUsername(
+                request.getUsername()
+        )) {
             throw new ConflictException("Username đã tồn tại");
         }
-        if(request.getUsername().contains(" ")){
-            throw new RuntimeException("Username không được để dấu cách");
+
+        if (userRepository.existsByEmail(
+                request.getEmail()
+        )) {
+            throw new ConflictException("Email đã tồn tại");
         }
+
+        if (request.getUsername().contains(" ")) {
+            throw new BadRequestException("Username không được để dấu cách");
+        }
+
         User user = User.builder()
                 .username(request.getUsername())
-                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .email(request.getEmail())
+                .passwordHash(
+                        passwordEncoder.encode(
+                                request.getPassword()
+                        )
+                )
                 .role(request.getRole())
                 .isActive(true)
                 .build();
 
-        return userMapper.toResponse(userRepository.save(user));
+        return userMapper.toResponse(
+                userRepository.save(user)
+        );
     }
 
-    // sửa
+    // Cập nhật user
     @Override
-    public UserResponse updateUser(Long id, UserRequest request) {
+    public UserResponse updateUser(
+            Long id,
+            UserRequest request
+    ) {
+
+        System.out.println("========== UPDATE USER ==========");
+        System.out.println("REQUEST = " + request);
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user"));
 
+        User existedUser = userRepository
+                .findByUsername(request.getUsername())
+                .orElse(null);
+
+        if (existedUser != null && !existedUser.getId().equals(id)) {
+            throw new ConflictException("Username đã tồn tại");
+        }
+
+        User existedEmail = userRepository
+                .findByEmail(request.getEmail())
+                .orElse(null);
+
+        if (existedEmail != null && !existedEmail.getId().equals(id)) {
+            throw new ConflictException("Email đã tồn tại");
+        }
+
+        if (request.getUsername().contains(" ")) {
+            throw new BadRequestException(
+                    "Username không được để dấu cách"
+            );
+        }
+
         user.setUsername(request.getUsername());
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setEmail(request.getEmail());
+
+        user.setPasswordHash(
+                passwordEncoder.encode(
+                        request.getPassword()
+                )
+        );
+
         user.setRole(request.getRole());
-        return userMapper.toResponse(userRepository.save(user));
+
+        user.setIsActive(request.getIsActive());
+
+        System.out.println("IS_ACTIVE = " + user.getIsActive());
+
+        return userMapper.toResponse(
+                userRepository.save(user)
+        );
     }
 
-    // xóa
+    // Xóa mềm
     @Override
     public void deleteUser(Long id) {
-        User user = userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user"));
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user"));
         user.setIsActive(false);
         userRepository.save(user);
     }
 
-    // lấy theo id
+    // Tìm theo ID
     @Override
     public UserResponse findById(Long id) {
 
-        return userMapper.toResponse(
-                userRepository.findById(id)
-                        .orElseThrow(
-                                () -> new ResourceNotFoundException("Không tìm thấy user")
-                        )
+        return userMapper.toResponse(userRepository.findById(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user"))
         );
     }
 
-    // phân trang
+    // Phân trang + tìm kiếm
     @Override
     public Page<UserResponse> findAll(
             String keyword,
@@ -112,26 +182,34 @@ public class UserServiceImpl implements UserService {
     ) {
         Pageable pageable = PageRequest.of(page, size);
         Page<User> users;
-        if(keyword == null || keyword.isBlank()){
+        if (keyword == null || keyword.isBlank()) {
             users = userRepository.findAll(pageable);
-        }else{
+        } else {
             users = userRepository.findByUsernameContainingIgnoreCase(keyword, pageable);
         }
+
         return users.map(userMapper::toResponse);
     }
 
+    // Đổi mật khẩu
     @Override
-    public void changePassword(ChangePasswordRequest request) {
+    public void changePassword(
+            ChangePasswordRequest request
+    ) {
 
         String username = SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getName();
+                        .getContext()
+                        .getAuthentication()
+                        .getName();
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
-        if (!passwordEncoder.matches(request.getOldPassword(),user.getPasswordHash())) {
-            throw new ConflictException("Mật khẩu cũ không chính xác");
+                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
+
+        if (!passwordEncoder.matches(
+                request.getOldPassword(),
+                user.getPasswordHash()
+        )) {
+            throw new BadRequestException("Mật khẩu cũ không chính xác");
         }
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);

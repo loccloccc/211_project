@@ -1,16 +1,17 @@
 package ra.project._11_project.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import ra.project._11_project.model.dto.response.ApiErrorResponse;
 
-import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
@@ -18,14 +19,14 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     /**
-     * Xử lý các exception khi không tìm thấy dữ liệu.
-     * Trả về HTTP 404 NOT FOUND
+     * 404 - Không tìm thấy dữ liệu
      */
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiErrorResponse> handleNotFound(
             ResourceNotFoundException ex,
             HttpServletRequest request
     ) {
+
         return buildError(
                 HttpStatus.NOT_FOUND,
                 ex.getMessage(),
@@ -34,14 +35,14 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Xử lý các lỗi xung đột dữ liệu.
-     * Trả về HTTP 409 CONFLICT
+     * 409 - Xung đột dữ liệu
      */
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ApiErrorResponse> handleConflict(
             ConflictException ex,
             HttpServletRequest request
     ) {
+
         return buildError(
                 HttpStatus.CONFLICT,
                 ex.getMessage(),
@@ -50,14 +51,14 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Xử lý các request gửi lên không hợp lệ.
-     * Trả về HTTP 400 BAD REQUEST
+     * 400 - Dữ liệu không hợp lệ
      */
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ApiErrorResponse> handleBadRequest(
             BadRequestException ex,
             HttpServletRequest request
     ) {
+
         return buildError(
                 HttpStatus.BAD_REQUEST,
                 ex.getMessage(),
@@ -66,8 +67,42 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Xử lý lỗi validation từ @Valid.
-     * Trả về HTTP 400 BAD REQUEST
+     * 401 - Chưa đăng nhập hoặc token không hợp lệ
+     */
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ApiErrorResponse> handleUnauthorized(
+            UnauthorizedException ex,
+            HttpServletRequest request
+    ) {
+
+        return buildError(
+                HttpStatus.UNAUTHORIZED,
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+    }
+
+    /**
+     * 403 - Không đủ quyền
+     */
+    @ExceptionHandler({
+            ForbiddenException.class,
+            AccessDeniedException.class
+    })
+    public ResponseEntity<ApiErrorResponse> handleForbidden(
+            Exception ex,
+            HttpServletRequest request
+    ) {
+
+        return buildError(
+                HttpStatus.FORBIDDEN,
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+    }
+
+    /**
+     * 400 - Lỗi validation từ @Valid
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidation(
@@ -75,12 +110,47 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
 
-        String message =
-                ex.getBindingResult()
-                        .getFieldErrors()
-                        .stream()
-                        .map(FieldError::getDefaultMessage)
-                        .collect(Collectors.joining(", "));
+        String message = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(FieldError::getDefaultMessage)
+                .collect(Collectors.joining(", "));
+
+        return buildError(
+                HttpStatus.BAD_REQUEST,
+                message,
+                request.getRequestURI()
+        );
+    }
+
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiErrorResponse> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException ex,
+            HttpServletRequest request
+    ) {
+
+        return buildError(
+                HttpStatus.BAD_REQUEST,
+                "Role chỉ được phép ADMIN, DOCTOR hoặc PATIENT",
+                request.getRequestURI()
+        );
+    }
+
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiErrorResponse> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex,
+            HttpServletRequest request
+    ) {
+
+        String message = "Giá trị không hợp lệ";
+
+        if (ex.getRequiredType() != null
+                && ex.getRequiredType().isEnum()) {
+
+            message = "Enum không hợp lệ: " + ex.getValue();
+        }
 
         return buildError(
                 HttpStatus.BAD_REQUEST,
@@ -90,7 +160,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Trả về HTTP 500 INTERNAL SERVER ERROR
+     * 500 - Lỗi hệ thống
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleException(
@@ -99,6 +169,7 @@ public class GlobalExceptionHandler {
     ) {
 
         ex.printStackTrace();
+
         return buildError(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Lỗi hệ thống, vui lòng thử lại sau",
@@ -112,14 +183,13 @@ public class GlobalExceptionHandler {
             String path
     ) {
 
-        ApiErrorResponse error =
-                ApiErrorResponse.builder()
-                        .timestamp(LocalDateTime.now())
-                        .status(status.value())
-                        .error(status.getReasonPhrase())
-                        .message(message)
-                        .path(path)
-                        .build();
+        ApiErrorResponse error = ApiErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(status.value())
+                .error(status.getReasonPhrase())
+                .message(message)
+                .path(path)
+                .build();
 
         return ResponseEntity.status(status)
                 .body(error);

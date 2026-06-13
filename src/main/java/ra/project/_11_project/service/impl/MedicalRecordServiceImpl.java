@@ -21,9 +21,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class MedicalRecordServiceImpl
-        implements MedicalRecordService {
-
+public class MedicalRecordServiceImpl implements MedicalRecordService {
     private final MedicalRecordRepository medicalRecordRepository;
     private final UserRepository userRepository;
     private final MedicalRecordMapper medicalRecordMapper;
@@ -36,30 +34,33 @@ public class MedicalRecordServiceImpl
             MultipartFile file
     ) {
 
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String username = authentication.getName();
+
+        User doctor = userRepository.findByUsername(username)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Không tìm thấy bác sĩ"
+                        ));
+
+        User patient = userRepository.findById(patientId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Không tìm thấy bệnh nhân"
+                        ));
+
         try {
-            Authentication authentication =
-                    SecurityContextHolder.getContext().getAuthentication();
-            String username = authentication.getName();
 
-            User doctor =
-                    userRepository.findByUsername(username)
-                            .orElseThrow(() ->
-                                    new ResourceNotFoundException(
-                                            "Không tìm thấy bác sĩ"
-                                    ));
-
-            User patient =
-                    userRepository.findById(patientId)
-                            .orElseThrow(() ->
-                                    new ResourceNotFoundException(
-                                            "Không tìm thấy bệnh nhân"
-                                    ));
-
-            Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
+            Map<?, ?> uploadResult =
+                    cloudinary.uploader().upload(
+                            file.getBytes(),
+                            ObjectUtils.emptyMap()
+                    );
 
             String fileUrl =
-                    uploadResult.get("secure_url")
-                            .toString();
+                    uploadResult.get("secure_url").toString();
 
             MedicalRecord medicalRecord =
                     MedicalRecord.builder()
@@ -70,11 +71,15 @@ public class MedicalRecordServiceImpl
                             .doctor(doctor)
                             .build();
 
-            medicalRecord = medicalRecordRepository.save(medicalRecord);
+            medicalRecord =
+                    medicalRecordRepository.save(medicalRecord);
 
             return medicalRecordMapper.toResponse(medicalRecord);
 
         } catch (Exception e) {
+
+            e.printStackTrace();
+
             throw new RuntimeException(
                     "Upload hồ sơ bệnh án thất bại"
             );

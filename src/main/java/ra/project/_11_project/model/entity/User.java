@@ -16,23 +16,31 @@ import java.util.List;
 @Data
 @Builder
 public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String username;
-    private String passwordHash;
-    @Enumerated(EnumType.STRING)
-    private RoleEnum role;
-    private Boolean isActive;
 
+    @Column(nullable = false, unique = true, length = 50)
+    private String username;
+    @Column(nullable = false, unique = true, length = 100)
+    private String email;
+
+    @Column(nullable = false)
+    private String passwordHash;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private RoleEnum role;
+
+    @Column(nullable = false)
+    private Boolean isActive;
 
     @OneToMany(mappedBy = "patient")
     private List<Appointment> appointments = new ArrayList<>();
 
-
     @OneToMany(mappedBy = "user")
     private List<MedicalRecord> medicalRecords = new ArrayList<>();
-
 
     @OneToMany(mappedBy = "user")
     private List<TokenBlacklist> blacklistedTokens = new ArrayList<>();

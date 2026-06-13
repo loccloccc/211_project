@@ -9,12 +9,30 @@ import ra.project._11_project.model.entity.User;
 import java.util.Optional;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository
+        extends JpaRepository<User, Long> {
 
-    Optional<User> findByUsername(String username);
+    // tìm theo username
+    Optional<User> findByUsername(
+            String username
+    );
 
-    boolean existsByUsername(String username);
+    // tìm theo email
+    Optional<User> findByEmail(
+            String email
+    );
 
+    // kiểm tra username đã tồn tại chưa
+    boolean existsByUsername(
+            String username
+    );
+
+    // kiểm tra email đã tồn tại chưa
+    boolean existsByEmail(
+            String email
+    );
+
+    // tìm kiếm theo username
     Page<User> findByUsernameContainingIgnoreCase(
             String keyword,
             Pageable pageable

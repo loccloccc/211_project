@@ -11,9 +11,14 @@ import ra.project._11_project.model.entity.RoleEnum;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserResponse {
+
     private Long id;
+
     private String username;
-    private String password;
+
+    private String email;
+
     private RoleEnum role;
+
     private Boolean isActive;
 }

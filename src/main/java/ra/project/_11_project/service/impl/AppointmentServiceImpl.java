@@ -4,7 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import ra.project._11_project.exception.BadRequestException;
 import ra.project._11_project.exception.ConflictException;
+import ra.project._11_project.exception.ForbiddenException;
 import ra.project._11_project.exception.ResourceNotFoundException;
 import ra.project._11_project.mapper.AppointmentMapper;
 import ra.project._11_project.model.dto.request.AppointmentRequest;
@@ -21,7 +23,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AppointmentServiceImpl implements AppointmentService {
-
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
     private final AppointmentMapper appointmentMapper;
@@ -34,19 +35,24 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         User doctor = userRepository.findById(request.getDoctorId())
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Không tìm thấy bác sĩ"));
+                        new ResourceNotFoundException(
+                                "Không tìm thấy bác sĩ"
+                        ));
 
         User patient = userRepository.findById(patientId)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Không tìm thấy bệnh nhân"));
+                        new ResourceNotFoundException(
+                                "Không tìm thấy bệnh nhân"
+                        ));
 
         if (!request.getEndTime().isAfter(request.getStartTime())) {
-            throw new ConflictException(
+            throw new BadRequestException(
                     "Thời gian kết thúc phải sau thời gian bắt đầu"
             );
         }
 
-        boolean exists = appointmentRepository.existsByDoctorAndDateAndStartTimeAndEndTime(
+        boolean exists =
+                appointmentRepository.existsByDoctorAndDateAndStartTimeAndEndTime(
                         doctor,
                         request.getDate(),
                         request.getStartTime(),
@@ -54,7 +60,9 @@ public class AppointmentServiceImpl implements AppointmentService {
                 );
 
         if (exists) {
-            throw new ConflictException("Bác sĩ đã có lịch khám trong khung giờ này");
+            throw new ConflictException(
+                    "Bác sĩ đã có lịch khám trong khung giờ này"
+            );
         }
 
         Appointment appointment = Appointment.builder()
@@ -67,9 +75,9 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .patient(patient)
                 .build();
 
-        return appointmentMapper.toResponse(
-                appointmentRepository.save(appointment)
-        );
+        appointment = appointmentRepository.save(appointment);
+
+        return appointmentMapper.toResponse(appointment);
     }
 
     @Override
@@ -94,12 +102,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             StatusEnum newStatus
     ) {
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User currentDoctor = userRepository.findByUsername(authentication.getName())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Không tìm thấy bác sĩ đang đăng nhập"
-                        ));
+        User currentDoctor = getCurrentDoctor();
 
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() ->
@@ -107,29 +110,56 @@ public class AppointmentServiceImpl implements AppointmentService {
                                 "Không tìm thấy lịch khám"
                         ));
 
-
-        // Chỉ bác sĩ sở hữu lịch khám mới được cập nhật
-        if (!appointment.getDoctor().getId()
-                .equals(currentDoctor.getId())) {
-
-            throw new ConflictException(
+        if (!appointment.getDoctor().getId().equals(currentDoctor.getId())) {
+            throw new ForbiddenException(
                     "Bạn không có quyền cập nhật lịch khám này"
             );
         }
 
-        StatusEnum current = appointment.getStatus();
+        validateStatusTransition(
+                appointment.getStatus(),
+                newStatus
+        );
 
-        if (current == StatusEnum.COMPLETED || current == StatusEnum.CANCELLED) {
-            throw new ConflictException("Lịch đã kết thúc, không thể thay đổi");
+        appointment.setStatus(newStatus);
+
+        appointment = appointmentRepository.save(appointment);
+
+        return appointmentMapper.toResponse(appointment);
+    }
+
+    private User getCurrentDoctor() {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        return userRepository.findByUsername(authentication.getName())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Không tìm thấy bác sĩ đang đăng nhập"
+                        ));
+    }
+
+    private void validateStatusTransition(
+            StatusEnum currentStatus,
+            StatusEnum newStatus
+    ) {
+
+        if (currentStatus == StatusEnum.COMPLETED
+                || currentStatus == StatusEnum.CANCELLED) {
+
+            throw new ConflictException(
+                    "Lịch đã kết thúc, không thể thay đổi"
+            );
         }
 
-        switch (current) {
+        switch (currentStatus) {
 
             case PENDING -> {
                 if (newStatus != StatusEnum.CONFIRMED
                         && newStatus != StatusEnum.CANCELLED) {
 
-                    throw new ConflictException(
+                    throw new BadRequestException(
                             "PENDING chỉ được CONFIRMED hoặc CANCELLED"
                     );
                 }
@@ -139,17 +169,11 @@ public class AppointmentServiceImpl implements AppointmentService {
                 if (newStatus != StatusEnum.COMPLETED
                         && newStatus != StatusEnum.CANCELLED) {
 
-                    throw new ConflictException(
+                    throw new BadRequestException(
                             "CONFIRMED chỉ được COMPLETED hoặc CANCELLED"
                     );
                 }
             }
         }
-
-        appointment.setStatus(newStatus);
-
-        appointment = appointmentRepository.save(appointment);
-
-        return appointmentMapper.toResponse(appointment);
     }
 }
